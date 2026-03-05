@@ -1368,14 +1368,12 @@ COMMAND, when present, may be a shell command string or an argv vector."
                                       (map-nested-elt state `(:tool-calls ,(map-nested-elt acp-notification '(params update toolCallId)) :raw-input)))
                          :output body-text)
                   :file-path agent-shell--transcript-file))
-               ;; Hide permission dialog on terminal statuses only.
-               ;; An "in_progress" update may arrive before the user
-               ;; answers the permission prompt, so keep the dialog
-               ;; visible until completion.  The dialog is also
-               ;; removed immediately when the user responds (see
-               ;; `agent-shell--send-permission-response').
-               (when (member (map-nested-elt acp-notification '(params update status))
-                             '("completed" "error"))
+               ;; Hide permission after sending response.
+               ;; Status and permission are no longer pending. User
+               ;; likely selected one of: accepted/rejected/always.
+               ;; Remove stale permission dialog.
+               (when (and (map-nested-elt acp-notification '(params update status))
+                          (not (equal (map-nested-elt acp-notification '(params update status)) "pending")))
                  ;; block-id must be the same as the one used as
                  ;; agent-shell--update-fragment param by "session/request_permission".
                  (agent-shell--delete-fragment :state state :block-id (format "permission-%s" (map-nested-elt acp-notification '(params update toolCallId)))))
