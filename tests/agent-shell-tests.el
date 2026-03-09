@@ -1015,6 +1015,45 @@ code block content
       (should (= (length received-events) 1))
       (should (equal (map-elt (nth 0 received-events) :event) 'prompt-ready)))))
 
+(ert-deftest agent-shell-dwim-carries-context-to-first-viewport-open-test ()
+  "Test `agent-shell--dwim' carries context into deferred viewport open."
+  (let ((agent-shell-prefer-viewport-interaction t))
+    (with-temp-buffer
+      (let ((source-buffer (current-buffer))
+            (show-buffer-args nil)
+            (shell-buffer (generate-new-buffer " *agent-shell shell*")))
+        (unwind-protect
+            (progn
+              (with-current-buffer shell-buffer
+                (setq-local agent-shell-session-strategy 'prompt)
+                (setq-local agent-shell--state
+                            `((:buffer . ,shell-buffer)
+                              (:session . ((:id . nil)))
+                              (:event-subscriptions . nil))))
+              (cl-letf (((symbol-function 'derived-mode-p)
+                         (lambda (&rest modes)
+                           (and (eq (current-buffer) shell-buffer)
+                                (memq 'agent-shell-mode modes))))
+                        ((symbol-function 'agent-shell--shell-buffer)
+                         (lambda (&rest _) shell-buffer))
+                        ((symbol-function 'agent-shell--context)
+                         (lambda (&key shell-buffer)
+                           (ignore shell-buffer)
+                           (when (eq (current-buffer) source-buffer)
+                             "context from source")))
+                        ((symbol-function 'agent-shell-viewport--show-buffer)
+                         (lambda (&rest args)
+                           (setq show-buffer-args args))))
+                (with-current-buffer source-buffer
+                  (agent-shell--dwim))
+                (should-not show-buffer-args)
+                (with-current-buffer shell-buffer
+                  (agent-shell--emit-event :event 'session-selected))
+                (should (equal (plist-get show-buffer-args :shell-buffer) shell-buffer))
+                (should (equal (plist-get show-buffer-args :append)
+                               "context from source"))))
+          (kill-buffer shell-buffer))))))
+
 (ert-deftest agent-shell--initiate-session-prefers-list-and-load-when-supported ()
   "Test `agent-shell--initiate-session' prefers session/list + session/load."
   (with-temp-buffer

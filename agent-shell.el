@@ -676,22 +676,23 @@ handles viewport mode detection, existing shell reuse, and project context."
                (or (derived-mode-p 'agent-shell-viewport-view-mode)
                    (derived-mode-p 'agent-shell-viewport-edit-mode)))
           (agent-shell-toggle)
-        (let ((shell-buffer
-               (cond (switch-to-shell
-                      (completing-read "Switch to shell: "
-                                       (mapcar #'buffer-name (or (agent-shell-buffers)
-                                                                 (user-error "No shells available")))
-                                       nil t))
-                     (new-shell
-                      (agent-shell--start :config (or config
-                                                      (agent-shell--resolve-preferred-config)
-                                                      (agent-shell-select-config
-                                                       :prompt "Start new agent: ")
-                                                      (error "No agent config found"))
-                                          :no-focus t
-                                          :new-session t))
-                     (t
-                      (agent-shell--shell-buffer)))))
+        (let* ((shell-buffer
+                (cond (switch-to-shell
+                       (completing-read "Switch to shell: "
+                                        (mapcar #'buffer-name (or (agent-shell-buffers)
+                                                                  (user-error "No shells available")))
+                                        nil t))
+                      (new-shell
+                       (agent-shell--start :config (or config
+                                                       (agent-shell--resolve-preferred-config)
+                                                       (agent-shell-select-config
+                                                        :prompt "Start new agent: ")
+                                                       (error "No agent config found"))
+                                           :no-focus t
+                                           :new-session t))
+                      (t
+                       (agent-shell--shell-buffer))))
+               (text (agent-shell--context :shell-buffer shell-buffer)))
           (if (and (eq (buffer-local-value 'agent-shell-session-strategy shell-buffer) 'prompt)
                    (not (map-nested-elt (buffer-local-value 'agent-shell--state shell-buffer)
                                         '(:session :id))))
@@ -701,8 +702,10 @@ handles viewport mode detection, existing shell reuse, and project context."
                :event 'session-selected
                :on-event (lambda (_event)
                            (agent-shell-viewport--show-buffer
+                            :append text
                             :shell-buffer shell-buffer)))
             (agent-shell-viewport--show-buffer
+             :append text
              :shell-buffer shell-buffer))))
     (cond (switch-to-shell
            (let* ((shell-buffer
