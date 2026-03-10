@@ -2307,6 +2307,7 @@ variable (see makunbound)"))
     ;; Better to check on shell creation and bail early (leaving no
     ;; shell behind).
     (with-current-buffer shell-buffer
+      ;; Apply dir-local variables in agent-shell buffer
       (hack-dir-local-variables-non-file-buffer)
       (unless (and (map-elt config :client-maker)
                    (funcall (map-elt config :client-maker) (current-buffer)))
