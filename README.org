@@ -27,6 +27,7 @@ Watch on [[https://www.youtube.com/watch?v=R2Ucr3amgGg][YouTube]]
 
 * News
 
+- [[https://xenodium.com/agent-shell-0-47-1-updates][agent-shell 0.47 updates]].
 - [[https://xenodium.com/agent-shell-0-25-updates][agent-shell 0.25 updates]].
 - [[https://xenodium.com/agent-shell-016-improvements-melpa][agent-shell 0.17 improvements + MELPA]].
 - [[https://xenodium.com/agent-shell-0-5-improvements][agent-shell 0.5 improvements]].
