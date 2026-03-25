@@ -2549,8 +2549,9 @@ a `status' key and a `content' or `step' key."
      :separator " "
      :joiner "\n"))))
 
-(cl-defun agent-shell--make-button (&key text help kind action keymap)
-  "Make button with TEXT, HELP text, KIND, KEYMAP, and ACTION."
+(cl-defun agent-shell--make-button (&key text help kind action keymap properties)
+  "Make button with TEXT, HELP text, KIND, KEYMAP, ACTION, and PROPERTIES.
+PROPERTIES is an optional plist of additional text properties to apply."
   ;; Use [ ] brackets in TUI which cannot render the box border.
   (let ((button (propertize
                  (if (display-graphic-p)
@@ -2567,7 +2568,9 @@ a `status' key and a `content' or `step' key."
                              (set-keymap-parent map keymap))
                            map)
                  'button kind)))
-    button))
+    (if properties
+        (apply #'agent-shell--add-text-properties button properties)
+      button)))
 
 (defun agent-shell--add-text-properties (string &rest properties)
   "Add text PROPERTIES to entire STRING and return the propertized string.
@@ -5819,10 +5822,30 @@ If CAP is non-nil, truncate at CAP."
             (setq reversed-lines (cdr reversed-lines)))
           ;; Reverse back to correct order and apply cap before final join
           (let ((final-lines (nreverse reversed-lines)))
-            ;; Apply cap if specified
-            (when (and cap (> (length final-lines) cap))
-              (setq final-lines (append (seq-take final-lines cap) '("   ..."))))
-            (string-join final-lines "\n")))))))
+            (if-let (((and cap (> (length final-lines) cap)))
+                     (full-text (string-join final-lines "\n"))
+                     (id (gensym "agent-shell-region-")))
+                (agent-shell--add-text-properties
+                 (concat (string-join (seq-take final-lines cap) "\n")
+                         "\n\n   "
+                         (agent-shell--make-button
+                          :text "Expand..."
+                          :help "RET to expand"
+                          :action
+                          (lambda ()
+                            (interactive)
+                            (save-excursion
+                              (goto-char (point-min))
+                              (when-let ((match (text-property-search-forward
+                                                 'agent-shell-region-id id t))
+                                         (inhibit-read-only t))
+                                (delete-region (prop-match-beginning match)
+                                               (prop-match-end match))
+                                (goto-char (prop-match-beginning match))
+                                (insert full-text))))))
+                 'agent-shell-region-id id)
+              (string-join final-lines "\n"))))))))
+
 
 (cl-defun agent-shell--format-diagnostic (&key buffer beg end line col type text)
   "Format a diagnostic error with context.
